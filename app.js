@@ -84,7 +84,8 @@ async function processReceipt(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    document.getElementById('camera-text').innerText = "Reading Receipt...";
+    // Loading UI
+    document.getElementById('camera-text').innerText = "AI is thinking...";
     document.getElementById('camera-icon').classList.add('animate-pulse');
 
     const reader = new FileReader();
@@ -100,40 +101,29 @@ async function processReceipt(event) {
             
             const result = await response.json();
 
-            // Check if the server sent an error message
             if (result.error) {
-                alert("Gemini Error: " + result.error);
-                document.getElementById('camera-text').innerText = "Scan New Receipt";
-                document.getElementById('camera-icon').classList.remove('animate-pulse');
+                alert("Oops: " + result.error);
+                resetCameraUI();
                 return;
             }
-            
-            // If everything is okay, parse the AI text
-            const aiText = result.candidates[0].content.parts[0].text;
-            const cleanedJson = aiText.replace(/```json|```/g, "").trim();
-            currentScanData = JSON.parse(cleanedJson);
 
+            // GET THE TEXT: This is where Gemini's answer lives
+            let aiText = result.candidates[0].content.parts[0].text;
+            
+            // CLEAN THE TEXT: Remove backticks like ```json ... ```
+            const cleanedJson = aiText.replace(/```json/g, "").replace(/```/g, "").trim();
+            
+            currentScanData = JSON.parse(cleanedJson);
             displayResults(currentScanData);
+            
         } catch (err) {
             alert("App Error: " + err.message);
-            document.getElementById('camera-text').innerText = "Scan New Receipt";
-            document.getElementById('camera-icon').classList.remove('animate-pulse');
+            resetCameraUI();
         }
     };
 }
 
-function displayResults(data) {
-    document.getElementById('ai-results').classList.remove('hidden');
-    document.getElementById('res-merchant').innerText = data.merchant;
-    
-    const splitDiv = document.getElementById('res-splits');
-    splitDiv.innerHTML = data.splits.map(s => `
-        <div class="flex justify-between text-sm border-b pb-2">
-            <span class="font-bold text-slate-600">${s.category}</span>
-            <span class="font-mono text-indigo-600">Rp ${s.amount.toLocaleString()}</span>
-        </div>
-    `).join('');
-    
+function resetCameraUI() {
     document.getElementById('camera-text').innerText = "Scan New Receipt";
     document.getElementById('camera-icon').classList.remove('animate-pulse');
 }
