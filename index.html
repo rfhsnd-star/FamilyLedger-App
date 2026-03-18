@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FamilyLedger</title>
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- We use the Supabase library to talk to your database -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col items-center justify-center p-6 text-center">
+    <div id="app" class="max-w-md w-full bg-white p-8 rounded-3xl shadow-xl border">
+        <div class="mb-6">
+            <div class="bg-indigo-600 w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-4">
+                <span class="text-3xl">🏠</span>
+            </div>
+            <h1 class="text-2xl font-black text-slate-900">FamilyLedger</h1>
+            <p class="text-slate-500 text-sm mt-2">Your Household Finance Dashboard</p>
+        </div>
+        
+        <div id="status" class="py-4 px-6 rounded-2xl bg-slate-50 text-slate-600 font-medium text-sm border border-slate-100">
+            Checking connection...
+        </div>
+
+        <p class="mt-8 text-[10px] text-slate-400 uppercase tracking-widest font-bold">Powered by Gemini AI</p>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
