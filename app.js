@@ -84,11 +84,9 @@ async function processReceipt(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Show Loading State
     document.getElementById('camera-text').innerText = "Reading Receipt...";
     document.getElementById('camera-icon').classList.add('animate-pulse');
 
-    // Convert image to Base64 (text) so we can send it to AI
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = async () => {
@@ -99,16 +97,27 @@ async function processReceipt(event) {
                 method: 'POST',
                 body: JSON.stringify({ image: base64Image })
             });
-            const result = await response.json();
             
-            // Extract the JSON from Gemini's response
+            const result = await response.json();
+
+            // Check if the server sent an error message
+            if (result.error) {
+                alert("Gemini Error: " + result.error);
+                document.getElementById('camera-text').innerText = "Scan New Receipt";
+                document.getElementById('camera-icon').classList.remove('animate-pulse');
+                return;
+            }
+            
+            // If everything is okay, parse the AI text
             const aiText = result.candidates[0].content.parts[0].text;
-            const cleanedJson = aiText.replace(/```json|```/g, "");
+            const cleanedJson = aiText.replace(/```json|```/g, "").trim();
             currentScanData = JSON.parse(cleanedJson);
 
             displayResults(currentScanData);
         } catch (err) {
-            alert("AI Error: " + err.message);
+            alert("App Error: " + err.message);
+            document.getElementById('camera-text').innerText = "Scan New Receipt";
+            document.getElementById('camera-icon').classList.remove('animate-pulse');
         }
     };
 }
