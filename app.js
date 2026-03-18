@@ -129,3 +129,48 @@ async function processReceipt(event) {
         }
     };
 }
+
+async function saveToDatabase() {
+    if (!currentScanData) return;
+
+    const saveButton = document.querySelector('#ai-results button');
+    saveButton.innerText = "Saving to Singapore...";
+    saveButton.disabled = true;
+
+    try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        
+        // 1. We need to find your Household ID first
+        const { data: profile } = await supabaseClient
+            .from('profiles')
+            .select('household_id')
+            .eq('id', user.id)
+            .single();
+
+        // 2. Save each 'Split' as a transaction
+        for (const split of currentScanData.splits) {
+            const { error } = await supabaseClient
+                .from('transactions')
+                .insert({
+                    household_id: profile.household_id,
+                    profile_id: user.id,
+                    amount: split.amount,
+                    note: `${currentScanData.merchant}: ${split.category}`,
+                    date: new Date().toISOString().split('T')[0]
+                });
+            
+            if (error) throw error;
+        }
+
+        alert("🎉 Successfully saved to your Family Ledger!");
+        
+        // Reset the UI
+        document.getElementById('ai-results').classList.add('hidden');
+        resetCameraUI();
+        
+    } catch (err) {
+        alert("Error saving: " + err.message);
+        saveButton.innerText = "Confirm & Save";
+        saveButton.disabled = false;
+    }
+}
