@@ -4,28 +4,39 @@ export default async function handler(req, res) {
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
-      return res.status(500).json({ error: "API Key is missing in Vercel. Go to Settings > Environment Variables." });
+      return res.status(500).json({ error: "API Key is missing. Check Vercel Environment Variables." });
     }
 
-    const prompt = "Analyze this receipt. Return ONLY JSON. Merchant name, Date, Total amount, and a breakdown of items into these categories: Food, Household, Personal Care, Other. Format: { \"merchant\": \"\", \"total\": 0, \"date\": \"\", \"splits\": [{\"category\": \"\", \"amount\": 0}] }";
+    const prompt = "Analyze this receipt. Return ONLY a JSON object. Merchant name, Date, Total amount, and a breakdown of items into these categories: Food, Household, Personal Care, Other. Format: { \"merchant\": \"\", \"total\": 0, \"date\": \"\", \"splits\": [{\"category\": \"\", \"amount\": 0}] }";
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    // UPDATED URL: Changed 'v1beta' to 'v1' for stability
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: image } }] }]
+        contents: [{ 
+          parts: [
+            { text: prompt }, 
+            { inlineData: { mimeType: "image/jpeg", data: image } }
+          ] 
+        }]
       })
     });
 
     const data = await response.json();
 
-    // ERROR CHECK: Did Google block it or fail?
-    if (!data.candidates || data.candidates.length === 0) {
-      const errorMsg = data.error ? data.error.message : "AI could not read this image. Try a clearer photo.";
-      return res.status(500).json({ error: errorMsg });
+    // If Google says the model is missing, it's usually a region or version issue
+    if (data.error) {
+      return res.status(500).json({ error: "Google AI says: " + data.error.message });
     }
 
-    // SUCCESS: Send the data back
+    // Check if we got a valid response
+    if (!data.candidates || !data.candidates[0]) {
+      return res.status(500).json({ error: "AI could not generate a response. Try a clearer photo." });
+    }
+
     res.status(200).json(data);
   } catch (err) {
     res.status(500).json({ error: "Server Error: " + err.message });
