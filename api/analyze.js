@@ -1,51 +1,50 @@
 export default async function handler(req, res) {
   try {
     const { image } = JSON.parse(req.body);
-    const apiKey = process.env.GEMINI_API_KEY;
+    // This removes any accidental spaces from your key
+    const apiKey = process.env.GEMINI_API_KEY?.trim();
 
     if (!apiKey) {
-      return res.status(500).json({ error: "API Key is missing. Please check Vercel Settings." });
+      return res.status(500).json({ error: "API Key missing. Add GEMINI_API_KEY to Vercel Settings." });
     }
 
-    // We will try these names in order until one works
-    const modelsToTry = [
-      "gemini-1.5-flash",
-      "gemini-1.5-flash-latest",
-      "gemini-1.5-flash-001"
-    ];
+    // This is the most stable URL for Gemini 1.5 Flash as of today
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-    let lastError = "";
+    const prompt = "Analyze this receipt. Return ONLY JSON. Merchant name, Date, Total amount, and a breakdown of items into these categories: Food, Household, Personal Care, Other. Format: { \"merchant\": \"\", \"total\": 0, \"date\": \"\", \"splits\": [{\"category\": \"\", \"amount\": 0}] }";
 
-    for (const modelName of modelsToTry) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: "Analyze this receipt. Return ONLY a JSON object: { \"merchant\": \"\", \"total\": 0, \"date\": \"\", \"splits\": [{\"category\": \"\", \"amount\": 0}] }" },
-              { inlineData: { mimeType: "image/jpeg", data: image } }
-            ]
-          }]
-        })
-      });
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType: "image/jpeg", data: image } }
+          ]
+        }],
+        // These settings tell the AI to be extra focused on the JSON
+        generationConfig: {
+          response_mime_type: "application/json",
+        }
+      })
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      // If this model name worked, send the data back and STOP the loop
-      if (data.candidates && data.candidates[0]) {
-        return res.status(200).json(data);
-      }
-
-      // If it failed, save the error and try the next name in the list
-      lastError = data.error ? data.error.message : "Model not responsive";
-      console.log(`Model ${modelName} failed: ${lastError}`);
+    // If Google returns an error (like Model Not Found)
+    if (data.error) {
+      return res.status(500).json({ error: "Google AI says: " + data.error.message });
     }
 
-    // If we tried all names and none worked:
-    res.status(500).json({ error: "All AI models failed. Last error: " + lastError });
+    // Check if we got the text back
+    if (data.candidates && data.candidates[0].content.parts[0].text) {
+      return res.status(200).json(data);
+    }
+
+    res.status(500).json({ error: "AI responded but no data was found. Try a clearer photo." });
 
   } catch (err) {
     res.status(500).json({ error: "Server Error: " + err.message });
