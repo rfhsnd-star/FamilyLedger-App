@@ -34,15 +34,26 @@ function showLogin() {
     authSection.classList.remove('hidden');
 }
 
-// AUTH FUNCTIONS
+// AUTH
 async function handleSignUp() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    const { error } = await supabaseClient.auth.signUp({ email, password });
+
+    // Safety Check: Don't let the user submit empty boxes
+    if (!email || !password) {
+        authError.innerText = "Please enter both email and password.";
+        return;
+    }
+
+    const { data, error } = await supabaseClient.auth.signUp({ 
+        email: email, 
+        password: password 
+    });
+
     if (error) {
         authError.innerText = error.message;
     } else {
-        alert("Account created! You are now logged in.");
+        alert("Success! You are now a member.");
         checkUser();
     }
 }
@@ -50,15 +61,20 @@ async function handleSignUp() {
 async function handleSignIn() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+    if (!email || !password) {
+        authError.innerText = "Please enter both email and password.";
+        return;
+    }
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ 
+        email: email, 
+        password: password 
+    });
+
     if (error) {
         authError.innerText = error.message;
     } else {
         checkUser();
     }
-}
-
-async function handleSignOut() {
-    await supabaseClient.auth.signOut();
-    showLogin();
 }
