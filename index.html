@@ -45,10 +45,18 @@
             </div>
 
             <!-- Receipt Camera Button -->
-            <button class="w-full bg-white p-6 rounded-[2rem] border-2 border-dashed border-slate-200 flex items-center justify-center gap-3 text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-all group">
-                <div class="bg-slate-100 p-3 rounded-2xl group-hover:bg-indigo-50 transition-colors">📸</div>
-                <span class="font-bold">Scan New Receipt</span>
-            </button>
+           <div class="space-y-4">
+    <button onclick="document.getElementById('camera-input').click()" class="w-full bg-white p-6 rounded-[2rem] border-2 border-dashed border-slate-200 flex items-center justify-center gap-3 text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-all group">
+        <div id="camera-icon" class="bg-slate-100 p-3 rounded-2xl group-hover:bg-indigo-50 transition-colors">📸</div>
+        <span id="camera-text" class="font-bold">Scan New Receipt</span>
+    </button>
+    <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden" onchange="processReceipt(event)">
+    
+    <!-- This is where the AI results will appear -->
+    <div id="ai-results" class="hidden bg-white p-6 rounded-3xl border-2 border-indigo-100 shadow-lg animate-bounce-in">
+        <h4 id="res-merchant" class="font-black text-lg">Scanning...</h4>
+        <div id="res-splits" class="space-y-2 my-4"></div>
+        <button onclick="saveToDatabase()" class="w-full bg-indigo-600 text-white font-bold p-4 rounded-xl">Confirm & Save</button>
         </div>
 
     </div>
