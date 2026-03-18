@@ -80,7 +80,7 @@ async function handleSignIn() {
 }
 let currentScanData = null;
 
-// Process Receipt
+// 1. Process Receipt Function
 async function processReceipt(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -101,7 +101,6 @@ async function processReceipt(event) {
             
             const result = await response.json();
 
-            // FIX: This now looks for the 'message' specifically
             if (result.error) {
                 alert("Error from AI: " + (result.error.message || result.error));
                 resetCameraUI();
@@ -130,6 +129,31 @@ async function processReceipt(event) {
     };
 }
 
+// 2. Display Results Function (PUT THIS BELOW THE BRACKET)
+function displayResults(data) {
+    currentScanData = data; 
+    
+    document.getElementById('ai-results').classList.remove('hidden');
+    document.getElementById('res-merchant').innerText = data.merchant;
+    
+    const splitDiv = document.getElementById('res-splits');
+    splitDiv.innerHTML = data.splits.map(s => `
+        <div class="flex justify-between text-sm border-b border-slate-100 pb-2 mb-2">
+            <span class="font-bold text-slate-600">${s.category}</span>
+            <span class="font-mono text-indigo-600">Rp ${Number(s.amount).toLocaleString('id-ID')}</span>
+        </div>
+    `).join('');
+    
+    resetCameraUI();
+}
+
+// 3. Reset UI Helper
+function resetCameraUI() {
+    document.getElementById('camera-text').innerText = "Scan New Receipt";
+    document.getElementById('camera-icon').classList.remove('animate-pulse');
+}
+
+// 4. Save to Database Function
 async function saveToDatabase() {
     if (!currentScanData) return;
 
@@ -140,14 +164,12 @@ async function saveToDatabase() {
     try {
         const { data: { user } } = await supabaseClient.auth.getUser();
         
-        // 1. We need to find your Household ID first
         const { data: profile } = await supabaseClient
             .from('profiles')
             .select('household_id')
             .eq('id', user.id)
             .single();
 
-        // 2. Save each 'Split' as a transaction
         for (const split of currentScanData.splits) {
             const { error } = await supabaseClient
                 .from('transactions')
@@ -163,8 +185,6 @@ async function saveToDatabase() {
         }
 
         alert("🎉 Successfully saved to your Family Ledger!");
-        
-        // Reset the UI
         document.getElementById('ai-results').classList.add('hidden');
         resetCameraUI();
         
