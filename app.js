@@ -80,11 +80,11 @@ async function handleSignIn() {
 }
 let currentScanData = null;
 
+// Process Receipt
 async function processReceipt(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Loading UI
     document.getElementById('camera-text').innerText = "AI is thinking...";
     document.getElementById('camera-icon').classList.add('animate-pulse');
 
@@ -107,23 +107,18 @@ async function processReceipt(event) {
                 return;
             }
 
-            // GET THE TEXT: This is where Gemini's answer lives
-            let aiText = result.candidates[0].content.parts[0].text;
+            // Extract the JSON from the new response format
+            let aiText = result.aiText;
+            const start = aiText.indexOf('{');
+            const end = aiText.lastIndexOf('}') + 1;
+            const jsonString = aiText.substring(start, end);
             
-            // CLEAN THE TEXT: Remove backticks like ```json ... ```
-            const cleanedJson = aiText.replace(/```json/g, "").replace(/```/g, "").trim();
-            
-            currentScanData = JSON.parse(cleanedJson);
+            currentScanData = JSON.parse(jsonString);
             displayResults(currentScanData);
             
         } catch (err) {
-            alert("App Error: " + err.message);
+            alert("App Error: Could not read receipt. Try a clearer photo.");
             resetCameraUI();
         }
     };
-}
-
-function resetCameraUI() {
-    document.getElementById('camera-text').innerText = "Scan New Receipt";
-    document.getElementById('camera-icon').classList.remove('animate-pulse');
 }
