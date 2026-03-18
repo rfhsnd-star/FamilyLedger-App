@@ -3,9 +3,9 @@ export default async function handler(req, res) {
     const { image } = JSON.parse(req.body);
     const apiKey = process.env.GEMINI_API_KEY?.trim();
 
-    if (!apiKey) return res.status(500).json({ error: "Key missing." });
+    if (!apiKey) return res.status(500).json({ error: "Key missing in Vercel." });
 
-    // Using the exact model name from your list!
+    // Using the 2.0-flash model we confirmed in diagnostic
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
@@ -19,24 +19,22 @@ export default async function handler(req, res) {
           ]
         }],
         generationConfig: {
-          responseMimeType: "application/json"
+            responseMimeType: "application/json"
         }
       })
     });
 
     const data = await response.json();
 
-    if (data.error) {
-      return res.status(500).json({ error: "AI Engine Error: " + data.error.message });
-    }
+    if (data.error) return res.status(500).json({ error: data.error.message });
 
     if (data.candidates && data.candidates[0].content.parts[0].text) {
       return res.status(200).json({ aiText: data.candidates[0].content.parts[0].text });
     }
 
-    res.status(500).json({ error: "No response from AI." });
+    res.status(500).json({ error: "AI could not read receipt." });
 
   } catch (err) {
-    res.status(500).json({ error: "System Error: " + err.message });
+    res.status(500).json({ error: err.message });
   }
 }
