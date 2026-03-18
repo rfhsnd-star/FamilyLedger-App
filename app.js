@@ -78,3 +78,53 @@ async function handleSignIn() {
         checkUser();
     }
 }
+let currentScanData = null;
+
+async function processReceipt(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Show Loading State
+    document.getElementById('camera-text').innerText = "Reading Receipt...";
+    document.getElementById('camera-icon').classList.add('animate-pulse');
+
+    // Convert image to Base64 (text) so we can send it to AI
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = async () => {
+        const base64Image = reader.result.split(',')[1];
+        
+        try {
+            const response = await fetch('/api/analyze', {
+                method: 'POST',
+                body: JSON.stringify({ image: base64Image })
+            });
+            const result = await response.json();
+            
+            // Extract the JSON from Gemini's response
+            const aiText = result.candidates[0].content.parts[0].text;
+            const cleanedJson = aiText.replace(/```json|```/g, "");
+            currentScanData = JSON.parse(cleanedJson);
+
+            displayResults(currentScanData);
+        } catch (err) {
+            alert("AI Error: " + err.message);
+        }
+    };
+}
+
+function displayResults(data) {
+    document.getElementById('ai-results').classList.remove('hidden');
+    document.getElementById('res-merchant').innerText = data.merchant;
+    
+    const splitDiv = document.getElementById('res-splits');
+    splitDiv.innerHTML = data.splits.map(s => `
+        <div class="flex justify-between text-sm border-b pb-2">
+            <span class="font-bold text-slate-600">${s.category}</span>
+            <span class="font-mono text-indigo-600">Rp ${s.amount.toLocaleString()}</span>
+        </div>
+    `).join('');
+    
+    document.getElementById('camera-text').innerText = "Scan New Receipt";
+    document.getElementById('camera-icon').classList.remove('animate-pulse');
+}
