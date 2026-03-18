@@ -9,13 +9,15 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "API Key is missing." });
     }
 
-    // Initialize the official Google AI tool
+    // Initialize the tool, but specifically tell it to use "v1" (Stable)
     const genAI = new GoogleGenerativeAI(apiKey);
     
-    // We use 'gemini-1.5-flash' - the library handles the versioning
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // We force the model to use the "latest" stable version
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash-latest" 
+    }, { apiVersion: 'v1' }); // <--- This is the magic "Stable" fix
 
-    const prompt = "Analyze this receipt. List merchant, date, and total. Split items into 'Food', 'Household', 'Personal Care', or 'Other'. Return ONLY a JSON object: { \"merchant\": \"\", \"total\": 0, \"date\": \"\", \"splits\": [{\"category\": \"\", \"amount\": 0}] }";
+    const prompt = "Analyze this receipt. Return ONLY JSON: { \"merchant\": \"\", \"total\": 0, \"date\": \"\", \"splits\": [{\"category\": \"\", \"amount\": 0}] }";
 
     const result = await model.generateContent([
       prompt,
@@ -30,11 +32,11 @@ export default async function handler(req, res) {
     const response = await result.response;
     const text = response.text();
 
-    // Send the text back to the app
     res.status(200).json({ aiText: text });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "AI Engine Restart Error: " + err.message });
+    // This will tell us if Google is blocking the Vercel IP
+    res.status(500).json({ error: "Stable Engine Error: " + err.message });
   }
 }
