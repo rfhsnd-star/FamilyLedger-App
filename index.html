@@ -6,24 +6,51 @@
     <title>FamilyLedger</title>
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- We use the Supabase library to talk to your database -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-50 min-h-screen flex flex-col items-center justify-center p-6 text-center">
-    <div id="app" class="max-w-md w-full bg-white p-8 rounded-3xl shadow-xl border">
-        <div class="mb-6">
-            <div class="bg-indigo-600 w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-4">
-                <span class="text-3xl">🏠</span>
-            </div>
-            <h1 class="text-2xl font-black text-slate-900">FamilyLedger</h1>
-            <p class="text-slate-500 text-sm mt-2">Your Household Finance Dashboard</p>
-        </div>
+<body class="bg-slate-50 min-h-screen font-sans">
+    <div id="app" class="max-w-md mx-auto p-6">
         
-        <div id="status" class="py-4 px-6 rounded-2xl bg-slate-50 text-slate-600 font-medium text-sm border border-slate-100">
-            Checking connection...
+        <!-- SECTION 1: LOGIN (Visible only when logged out) -->
+        <div id="auth-section" class="hidden mt-20 bg-white p-8 rounded-3xl shadow-xl border">
+            <h1 class="text-3xl font-black text-slate-900 mb-2">Welcome</h1>
+            <p class="text-slate-500 mb-8">Sign in to your household ledger</p>
+            
+            <div class="space-y-4">
+                <input id="email" type="email" placeholder="Email" class="w-full p-4 rounded-xl border bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                <input id="password" type="password" placeholder="Password" class="w-full p-4 rounded-xl border bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                
+                <div class="grid grid-cols-2 gap-3 pt-4">
+                    <button onclick="handleSignIn()" class="bg-indigo-600 text-white font-bold p-4 rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all">Sign In</button>
+                    <button onclick="handleSignUp()" class="border-2 border-slate-200 text-slate-600 font-bold p-4 rounded-xl hover:bg-slate-50 active:scale-95 transition-all">Join</button>
+                </div>
+            </div>
+            <p id="auth-error" class="text-red-500 text-xs mt-4 text-center"></p>
         </div>
 
-        <p class="mt-8 text-[10px] text-slate-400 uppercase tracking-widest font-bold">Powered by Gemini AI</p>
+        <!-- SECTION 2: DASHBOARD (Visible only when logged in) -->
+        <div id="dashboard-section" class="hidden space-y-6">
+            <header class="flex justify-between items-center py-4">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-900">FamilyLedger</h2>
+                    <p id="user-display" class="text-xs text-slate-500 font-medium"></p>
+                </div>
+                <button onclick="handleSignOut()" class="text-slate-400 hover:text-red-500"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+            </header>
+
+            <!-- Quick Stats -->
+            <div class="bg-indigo-600 p-6 rounded-[2rem] text-white shadow-xl shadow-indigo-100">
+                <p class="text-xs opacity-70 font-bold uppercase tracking-widest">Total Expenses (IDR)</p>
+                <h3 class="text-4xl font-black mt-1">Rp 0</h3>
+            </div>
+
+            <!-- Receipt Camera Button -->
+            <button class="w-full bg-white p-6 rounded-[2rem] border-2 border-dashed border-slate-200 flex items-center justify-center gap-3 text-slate-500 hover:border-indigo-400 hover:text-indigo-600 transition-all group">
+                <div class="bg-slate-100 p-3 rounded-2xl group-hover:bg-indigo-50 transition-colors">📸</div>
+                <span class="font-bold">Scan New Receipt</span>
+            </button>
+        </div>
+
     </div>
     <script src="app.js"></script>
 </body>
