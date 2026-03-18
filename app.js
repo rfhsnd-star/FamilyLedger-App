@@ -189,3 +189,119 @@ async function saveToDatabase() {
         saveButton.disabled = false;
     }
 }
+// --- NEW FEATURES: MANUAL TRACKING ---
+
+// 1. Fetch Categories from Singapore
+async function loadCategories() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    
+    // Get the user's household first
+    const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('household_id')
+        .eq('id', user.id)
+        .single();
+
+    const { data: categories } = await supabaseClient
+        .from('categories')
+        .select('*')
+        .eq('household_id', profile.household_id)
+        .eq('type', 'expense');
+
+    const select = document.getElementById('manual-category');
+    // Clear existing options
+    select.innerHTML = '<option value="">Select Category...</option>';
+    
+    categories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.id;
+        opt.innerText = `${cat.icon || '📦'} ${cat.name}`;
+        select.appendChild(opt);
+    });
+}
+
+// 2. Save Manual Expense
+async function saveManualExpense() {
+    const amount = document.getElementById('manual-amount').value;
+    const categoryId = document.getElementById('manual-category').value;
+    const note = document.getElementById('manual-note').value;
+
+    if (!amount || !categoryId) {
+        alert("Please enter an amount and select a category!");
+        return;
+    }
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    
+    // Get household_id
+    const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('household_id')
+        .eq('id', user.id)
+        .single();
+
+    const { error } = await supabaseClient.from('transactions').insert({
+        household_id: profile.household_id,
+        profile_id: user.id,
+        category_id: categoryId,
+        amount: parseFloat(amount),
+        note: note,
+        date: new Date().toISOString().split('T')[0]
+    });
+
+    if (error) {
+        alert("Error saving: " + error.message);
+    } else {
+        alert("Expense Saved!");
+        // Clear the form
+        document.getElementById('manual-amount').value = '';
+        document.getElementById('manual-note').value = '';
+        loadTransactions(); // Refresh the list
+    }
+}
+
+// 3. Load Transaction History
+async function loadTransactions() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    
+    const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('household_id')
+        .eq('id', user.id)
+        .single();
+
+    const { data: transactions } = await supabaseClient
+        .from('transactions')
+        .select('*, categories(name, icon)')
+        .eq('household_id', profile.household_id)
+        .order('date', { ascending: false })
+        .limit(10);
+
+    const listDiv = document.getElementById('transaction-list');
+    
+    if (transactions.length === 0) {
+        listDiv.innerHTML = '<p class="text-center text-slate-400 text-sm py-8 italic">No transactions yet.</p>';
+        return;
+    }
+
+    listDiv.innerHTML = transactions.map(t => `
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="text-xl">${t.categories?.icon || '💰'}</div>
+                <div>
+                    <p class="font-bold text-slate-800 text-sm">${t.note || t.categories?.name}</p>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">${t.date}</p>
+                </div>
+            </div>
+            <p class="font-mono font-bold text-slate-900 text-sm">Rp ${Number(t.amount).toLocaleString('id-ID')}</p>
+        </div>
+    `).join('');
+}
+
+// Update the showDashboard function to call these new loaders
+const originalShowDashboard = showDashboard;
+showDashboard = (user) => {
+    originalShowDashboard(user);
+    loadCategories();
+    loadTransactions();
+};
