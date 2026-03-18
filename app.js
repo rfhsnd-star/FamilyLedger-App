@@ -101,13 +101,20 @@ async function processReceipt(event) {
             
             const result = await response.json();
 
+            // FIX: This now looks for the 'message' specifically
             if (result.error) {
-                alert("Oops: " + result.error);
+                alert("Error from AI: " + (result.error.message || result.error));
                 resetCameraUI();
                 return;
             }
 
-            // Extract the JSON from the new response format
+            if (!result.aiText) {
+                alert("No data returned from AI.");
+                resetCameraUI();
+                return;
+            }
+
+            // Extract the JSON
             let aiText = result.aiText;
             const start = aiText.indexOf('{');
             const end = aiText.lastIndexOf('}') + 1;
@@ -117,7 +124,7 @@ async function processReceipt(event) {
             displayResults(currentScanData);
             
         } catch (err) {
-            alert("App Error: Could not read receipt. Try a clearer photo.");
+            alert("App Error: " + err.message);
             resetCameraUI();
         }
     };
