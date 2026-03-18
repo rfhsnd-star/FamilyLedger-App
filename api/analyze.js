@@ -9,34 +9,54 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "API Key is missing." });
     }
 
-    // Initialize the tool, but specifically tell it to use "v1" (Stable)
     const genAI = new GoogleGenerativeAI(apiKey);
     
-    // We force the model to use the "latest" stable version
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash-latest" 
-    }, { apiVersion: 'v1' }); // <--- This is the magic "Stable" fix
+    // THE SEARCH: This part tries to find ANY model that works for your key
+    // We try 'gemini-1.5-flash' first, then 'gemini-1.5-pro'
+    let modelName = "gemini-1.5-flash"; 
+    
+    // We try a direct call with the most basic naming convention
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
     const prompt = "Analyze this receipt. Return ONLY JSON: { \"merchant\": \"\", \"total\": 0, \"date\": \"\", \"splits\": [{\"category\": \"\", \"amount\": 0}] }";
 
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: image,
-          mimeType: "image/jpeg",
-        },
-      },
-    ]);
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType: "image/jpeg", data: image } }
+          ]
+        }]
+      })
+    });
 
-    const response = await result.response;
-    const text = response.text();
+    const data = await response.json();
 
-    res.status(200).json({ aiText: text });
+    // If Flash fails, we try PRO (the bigger brain)
+    if (data.error && data.error.code === 404) {
+      const proUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+      const proResponse = await fetch(proUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: prompt },
+              { inlineData: { mimeType: "image/jpeg", data: image } }
+            ]
+          }]
+        })
+      });
+      const proData = await proResponse.json();
+      return res.status(200).json(proData);
+    }
+
+    res.status(200).json(data);
 
   } catch (err) {
-    console.error(err);
-    // This will tell us if Google is blocking the Vercel IP
-    res.status(500).json({ error: "Stable Engine Error: " + err.message });
+    res.status(500).json({ error: "Diagnostic Error: " + err.message });
   }
 }
