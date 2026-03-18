@@ -2,5 +2,7 @@
   "name": "family-ledger-app",
   "version": "1.0.0",
   "type": "module",
-  "dependencies": {}
+  "dependencies": {
+    "@google/generative-ai": "^0.11.0"
+  }
 }
