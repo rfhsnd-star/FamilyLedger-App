@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     // This is the absolute most stable combination for Southeast Asia right now:
     // API Version: v1 (Stable)
     // Model Name: gemini-1.5-flash (Standard)
-    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
       method: 'POST',
