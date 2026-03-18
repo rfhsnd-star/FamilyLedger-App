@@ -85,48 +85,28 @@ async function processReceipt(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    document.getElementById('camera-text').innerText = "AI is thinking...";
-    document.getElementById('camera-icon').classList.add('animate-pulse');
-
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = async () => {
-        const base64Image = reader.result.split(',')[1];
+    document.getElementById('camera-text').innerText = "Diagnosing AI...";
+    
+    try {
+        const response = await fetch('/api/analyze', {
+            method: 'POST',
+            body: JSON.stringify({ image: "test" }) // We don't need the real image yet
+        });
         
-        try {
-            const response = await fetch('/api/analyze', {
-                method: 'POST',
-                body: JSON.stringify({ image: base64Image })
-            });
-            
-            const result = await response.json();
+        const result = await response.json();
 
-            if (result.error) {
-                alert("Error from AI: " + (result.error.message || result.error));
-                resetCameraUI();
-                return;
-            }
-
-            if (!result.aiText) {
-                alert("No data returned from AI.");
-                resetCameraUI();
-                return;
-            }
-
-            // Extract the JSON
-            let aiText = result.aiText;
-            const start = aiText.indexOf('{');
-            const end = aiText.lastIndexOf('}') + 1;
-            const jsonString = aiText.substring(start, end);
-            
-            currentScanData = JSON.parse(jsonString);
-            displayResults(currentScanData);
-            
-        } catch (err) {
-            alert("App Error: " + err.message);
-            resetCameraUI();
+        if (result.error) {
+            alert("Diagnostic Error: " + result.error);
+        } else {
+            // This will show you a list like: gemini-1.5-flash, gemini-pro, etc.
+            alert("✅ Available Models: \n" + result.availableModels.join("\n"));
         }
-    };
+        
+        resetCameraUI();
+    } catch (err) {
+        alert("System Error: " + err.message);
+        resetCameraUI();
+    }
 }
 
 // 2. Display Results Function (PUT THIS BELOW THE BRACKET)
